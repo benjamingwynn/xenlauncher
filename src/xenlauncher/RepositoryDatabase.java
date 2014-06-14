@@ -21,8 +21,6 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRefNameException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
@@ -32,7 +30,7 @@ public class RepositoryDatabase implements Serializable {
     
     private static List<List<String>> repository_list = new ArrayList<>();
     private static Exception repoNotFoundException;
-    private static String database_file = "XenLauncher_Repository_Database.dat";
+    private static final String database_file = "XenLauncher_Repository_Database.dat";
     
     public static void readListFromFile() throws FileNotFoundException, IOException, ClassNotFoundException {
         FileInputStream fis = new FileInputStream(database_file);

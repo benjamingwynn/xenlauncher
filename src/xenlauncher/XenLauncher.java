@@ -19,7 +19,7 @@ public class XenLauncher {
      */
     public static void main(String[] args) {
         // TODO code application logic here
-        Output.print('I', "Welcome to XenLauncher Version " + meta.getVersionNumber());
+        Output.print('I', "Welcome to XenLauncher " + meta.getFullVersionInformation());
         Output.print('I', "Reading Repository Database from file...");
         try {
             RepositoryDatabase.readListFromFile();

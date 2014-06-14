@@ -17,18 +17,21 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class Output {
-    public static void print(char type, String text) {
-        System.out.println("XenLauncher " + String.valueOf(meta.getVersionNumber()) + ": [" + type + "] " + text);
+    public static void print(char type, String msg) {
+        System.out.println("XenLauncher " + String.valueOf(meta.getVersionNumber()) + ": [" + type + "] " + msg);
+        new LauncherGUI().writeToLog(type, msg);
     }
     
     public static void error(String msg) {
         print('E', msg + " - No trace.");
         new LauncherGUI().showError(msg);
+        new LauncherGUI().writeToLog('E', msg);
     }
     
     public static void error(String msg, Exception ex) {
-        new LauncherGUI().showError(msg);
         print('E', msg + " - Tracing...");
-        Logger.getLogger(LauncherGUI.class.getName()).log(Level.SEVERE, null, ex);
+        new LauncherGUI().showError(msg);
+        new LauncherGUI().writeToLog('E', msg);
+        Logger.getLogger(XenLauncher.class.getName()).log(Level.SEVERE, null, ex);
     }
 }
