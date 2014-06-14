@@ -33,6 +33,9 @@ import java.util.Random;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.InvalidRefNameException;
+import org.eclipse.jgit.api.errors.JGitInternalException;
+import org.eclipse.jgit.api.errors.RefNotFoundException;
 
 public class LauncherGUI extends javax.swing.JFrame {
 
@@ -152,14 +155,12 @@ public class LauncherGUI extends javax.swing.JFrame {
         modpackPane = new javax.swing.JPanel();
         jLabel3 = new javax.swing.JLabel();
         jToggleButton1 = new javax.swing.JToggleButton();
-        jButton3 = new javax.swing.JButton();
+        tempButton = new javax.swing.JButton();
 
         settingsFrame.setTitle("Settings");
         settingsFrame.setAlwaysOnTop(true);
-        settingsFrame.setMaximumSize(new java.awt.Dimension(452, 1000));
         settingsFrame.setMinimumSize(new java.awt.Dimension(452, 471));
         settingsFrame.setName("SettingsFrame"); // NOI18N
-        settingsFrame.setPreferredSize(new java.awt.Dimension(452, 471));
         settingsFrame.setResizable(false);
 
         jLabel5.setFont(new java.awt.Font("Ubuntu", 0, 36)); // NOI18N
@@ -317,7 +318,6 @@ public class LauncherGUI extends javax.swing.JFrame {
         );
 
         repoManagerAddRepoFrame.setTitle("Add Repo");
-        repoManagerAddRepoFrame.setMaximumSize(new java.awt.Dimension(400, 90));
         repoManagerAddRepoFrame.setMinimumSize(new java.awt.Dimension(399, 89));
         repoManagerAddRepoFrame.setResizable(false);
 
@@ -490,10 +490,10 @@ public class LauncherGUI extends javax.swing.JFrame {
 
         jToggleButton1.setText("Force Update");
 
-        jButton3.setText("test error");
-        jButton3.addActionListener(new java.awt.event.ActionListener() {
+        tempButton.setText("adddefaultrepo[temp]");
+        tempButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton3ActionPerformed(evt);
+                tempButtonActionPerformed(evt);
             }
         });
 
@@ -517,7 +517,7 @@ public class LauncherGUI extends javax.swing.JFrame {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                     .addComponent(jToggleButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(jButton3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                    .addComponent(tempButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                     .addComponent(settingsButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -551,7 +551,7 @@ public class LauncherGUI extends javax.swing.JFrame {
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(repoManagerButton, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(username, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jButton3))
+                            .addComponent(tempButton))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(settingsButton)
@@ -597,14 +597,7 @@ public class LauncherGUI extends javax.swing.JFrame {
     }//GEN-LAST:event_closeRepoManagerButtonActionPerformed
 
     private void addRepoButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addRepoButtonActionPerformed
-        try {
-            RepoManager.newRepo(addRepoInput.getText());
-        } catch (GitAPIException ex) {
-            Output.error("Couldn't get. Bad repo url.", ex);
-        } catch (Exception ex) {
-            Output.error("Caught unknown exception at newRepo - jGit may not be working.", ex);
-            Logger.getLogger(LauncherGUI.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        //addRepoInput.getText()
     }//GEN-LAST:event_addRepoButtonActionPerformed
 
     private void closeErrorDialogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_closeErrorDialogActionPerformed
@@ -615,9 +608,31 @@ public class LauncherGUI extends javax.swing.JFrame {
         repoManagerAddRepoFrame.setVisible(true);
     }//GEN-LAST:event_openRepoManagerAddRepoFrameButtonActionPerformed
 
-    private void jButton3ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton3ActionPerformed
-        Output.error("Test error.");
-    }//GEN-LAST:event_jButton3ActionPerformed
+    private void tempButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tempButtonActionPerformed
+        // ***** TEMP ADD DEFAULT REPO BUTTON *****
+        try {
+            RepoManager repo = new RepoManager();
+            repo.register("default_repo", "git@github.com:benjamingwynn/xenlauncher-repo.git");
+            repo.cloneRepo();
+            repo.trackRepoBranch((meta.getVersionName().toLowerCase()));
+            repo.pullRepo();
+        } catch (IOException ex) {
+            Output.error("Cannot create the repo. Maybe you don't have permission to write here? (Java IOException)", ex);
+            Logger.getLogger(LauncherGUI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (JGitInternalException ex) {
+            Output.error("Cannot create the repo. Maybe the repo already exists but XenLauncher didn't see it? (Java JGitInternelException)", ex);
+            Logger.getLogger(LauncherGUI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (RefNotFoundException ex) {
+            Output.error("Cannot create the repo. Reference not found. Outdated repo or typo. (Java RefNotFoundException)");
+            Logger.getLogger(LauncherGUI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (InvalidRefNameException ex) {
+            Output.error("Cannot create the repo. Not a Git repo. (Java InvalidRefNameException)");
+            Logger.getLogger(LauncherGUI.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (GitAPIException ex) {
+            Output.error("Cannot create the repo. API Error. Bad Git repo? (Java GitAPIException)");
+            Logger.getLogger(LauncherGUI.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }//GEN-LAST:event_tempButtonActionPerformed
 
     /**
      * @param args the command line arguments
@@ -664,7 +679,6 @@ public class LauncherGUI extends javax.swing.JFrame {
     private javax.swing.JLabel errorDialogErrorText;
     private javax.swing.JLabel info_text;
     private javax.swing.JButton jButton2;
-    private javax.swing.JButton jButton3;
     private javax.swing.JCheckBox jCheckBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
@@ -701,6 +715,7 @@ public class LauncherGUI extends javax.swing.JFrame {
     private javax.swing.JFrame repoManagerFrame;
     private javax.swing.JButton settingsButton;
     private javax.swing.JFrame settingsFrame;
+    private javax.swing.JButton tempButton;
     private javax.swing.JTextField username;
     private javax.swing.JLabel ver;
     private javax.swing.JEditorPane webPane;

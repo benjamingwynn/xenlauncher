@@ -3,3 +3,6 @@ dist
 manifest.mf
 build.xml
 nbproject
+XenLauncher_Repository_Database.dat
+XenLauncher Default Repository
+repos

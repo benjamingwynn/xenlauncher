@@ -13,19 +13,22 @@
 
 package xenlauncher;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 public class Output {
     public static void print(char type, String text) {
         System.out.println("XenLauncher " + String.valueOf(meta.getVersionNumber()) + ": [" + type + "] " + text);
     }
     
     public static void error(String msg) {
-        print('E', msg);
+        print('E', msg + " - No trace.");
         new LauncherGUI().showError(msg);
     }
     
-    public static void error(String msg, Exception e) {
-        //TODO handle exception argument.
-        print('E', msg);
+    public static void error(String msg, Exception ex) {
         new LauncherGUI().showError(msg);
+        print('E', msg + " - Tracing...");
+        Logger.getLogger(LauncherGUI.class.getName()).log(Level.SEVERE, null, ex);
     }
 }
