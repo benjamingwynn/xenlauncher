@@ -12,6 +12,7 @@
  */
 package xenlauncher;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
@@ -21,6 +22,9 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.apache.commons.io.FileUtils;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.InvalidRefNameException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
@@ -30,6 +34,7 @@ public class RepositoryDatabase implements Serializable {
     
     private static List<List<String>> repository_list = new ArrayList<>();
     private static Exception repoNotFoundException;
+    private static Exception repoRemoveFailException;
     private static final String database_file = "XenLauncher_Repository_Database.dat";
     
     public static void readListFromFile() throws FileNotFoundException, IOException, ClassNotFoundException {
@@ -41,38 +46,63 @@ public class RepositoryDatabase implements Serializable {
     }
     
     public static void writeListToFile() throws IOException {
+        FileUtils.deleteQuietly(new File (database_file));
         FileOutputStream fos = new FileOutputStream(database_file);
         try (ObjectOutputStream oos = new ObjectOutputStream(fos)) {
             oos.writeObject(repository_list);
         }
     }
     
-    public static void addRepo(String repo_name, String repo_url) {
+    public static void addRepo(String repo_name, String repo_url) throws IOException, GitAPIException {
+        Output.print('I', "Adding repository: '" + repo_name + "'...");
+        RepoManager repo = new RepoManager();
+        repo.register(getRepoPath(repo_name), repo_url);
+        repo.cloneRepo();
+        repo.trackRepoBranch((meta.getVersionName().toLowerCase()));
+        repo.pullRepo();
+        Output.print('I', "Adding new repository to the Repository Database...");
+        ArrayList<String> new_repo_data = new ArrayList<>();
+        new_repo_data.add(repo_name); // 0 - Repo Name
+        new_repo_data.add(repo_url);  // 1 - Repo URL
+        repository_list.add(new_repo_data);
+        writeListToFile();
+    }
+    
+    static void removeRepositoryFolderCatch(String repo_name) {
+        Output.print('I', "Attempting to remove repo folder...");
         try {
-            Output.print('I', "Adding repository: '" + repo_name + "'...");
-            RepoManager repo = new RepoManager();
-            repo.register(repo_name, repo_url);
-            repo.cloneRepo();
-            repo.trackRepoBranch((meta.getVersionName().toLowerCase()));
-            repo.pullRepo();
+            removeRepositoryFolder(repo_name);
         } catch (IOException ex) {
-            Output.error("Cannot create the repo. Maybe you don't have permission to write here? (Java IOException)", ex);
-        } catch (JGitInternalException ex) {
-            Output.error("Cannot create the repo. Maybe the repo already exists but XenLauncher didn't see it? (Java JGitInternelException)", ex);
-        } catch (RefNotFoundException ex) {
-            Output.error("Cannot create the repo. Reference not found. Outdated repo or typo. (Java RefNotFoundException)", ex);
-        } catch (InvalidRefNameException ex) {
-            Output.error("Cannot create the repo. Not a Git repo. (Java InvalidRefNameException)", ex);
-        } catch (GitAPIException ex) {
-            Output.error("Cannot create the repo. API Error. Bad Git repo? (Java GitAPIException)", ex);
+            Output.error("Cannot delete the repository directory. (Java IOException)", ex);
         }
-        finally {
-            Output.print('I', "Adding new repository to the Repository Database...");
-            ArrayList<String> new_repo_data = new ArrayList<>();
-            new_repo_data.add(repo_name); // 0 - Repo Name
-            new_repo_data.add(repo_url);  // 1 - Repo URL
-            repository_list.add(new_repo_data);
+    }
+    
+    private static void removeRepositoryFolder(String repo_name) throws IOException {
+            FileUtils.deleteDirectory(new File (getRepoPath(repo_name)));
+    }
+    
+    static void removeRepository(String repo_name) throws Exception {
+        Output.print('I', "Attempting to remove repo '" + repo_name + "'...");
+        if (repo_name.equals("XenLauncher Default Repository")) {
+            Output.error("Request refused. Will not delete default repository.");
+            throw repoRemoveFailException;
         }
+        try {
+            removeRepositoryFolder(repo_name);
+        } catch (IOException ex) {
+            Output.error("Cannot delete repo folder. (Java IOException)", ex);
+            throw repoRemoveFailException;
+        }
+        Output.print('I', "Attempting to remove repo from database...");
+        repository_list.remove(selectRepo(repo_name));
+        Output.print('I', "Saving changes to database...");
+        try {
+            writeListToFile();
+        } catch (IOException ex) {
+            Output.error("Cannot save repository database changes. (Java IOException)", ex);
+            throw repoRemoveFailException;
+        }
+        Output.print('I', "Repository deleted.");
     }
     
     public static int getRepoCount() {
@@ -84,7 +114,7 @@ public class RepositoryDatabase implements Serializable {
         for (int i = 0; i < repository_list.size(); i++) {
             Output.print('I', "Refreshing repo: '" + repository_list.get(i).get(0) + "'...");
             RepoManager repo = new RepoManager();
-            repo.register(repository_list.get(i).get(0), repository_list.get(i).get(1));
+            repo.register(getRepoPath(repository_list.get(i).get(0)), repository_list.get(i).get(1));
             repo.trackRepoBranch(meta.getVersionName().toLowerCase());
             repo.pullRepo();
         }
@@ -96,27 +126,69 @@ public class RepositoryDatabase implements Serializable {
             for (String listed_name : repository_list.get(i)) {
                 if (repo_name.equals(listed_name)) {
                     RepoManager repo = new RepoManager();
-                    // TEMP: URL may not always be second place (count from 0) in the list.
+                    new LauncherGUI().setProgressBar(0);
                     String repo_url = repository_list.get(i).get(1);
+                    new LauncherGUI().setProgressBar(25);
                     repo.register(repo_name, repo_url);
+                    new LauncherGUI().setProgressBar(50);
                     repo.trackRepoBranch(meta.getVersionName().toLowerCase());
+                    new LauncherGUI().setProgressBar(75);
                     repo.pullRepo();
+                    new LauncherGUI().setProgressBar(100);
                     return;
                 }
             }
         }
         throw repoNotFoundException;
     }
+    
+    static ArrayList getListOfRepoNames() {
+        ArrayList<String> names = new ArrayList<>();
+        for (int i = 0; i < repository_list.size(); i++) {
+            names.add(repository_list.get(i).get(0));
+        }
+        return names;
+    }
+    
+    static List<String> getRepositoryMeta(String repository_name, String requested) throws FileNotFoundException, IOException {
+        List<String> lines = FileUtils.readLines(new File(getRepoPath(repository_name) + "/meta/" + requested + ".meta"), "utf-8");
+        return lines;
+    }
+    
+    static String getRepoPath(String repository_name) {
+        return "repositories/" + repository_name;
+    }
+    
+    static int selectRepo(String repository_name) {
+        for (int i = 0; i < repository_list.size(); i++) {
+            if ((repository_list.get(i).get(0)) == null ? repository_name == null : (repository_list.get(i).get(0)).equals(repository_name)) {
+                return i;
+            }
+        }
+        return 0;
+    }
+    
+    static String selectRepo(int repository_number) {
+        return repository_list.get(repository_number).get(0);
+    }
 
     static void createDatabase() {
         Output.print('I', "Creating Repository Database...");
         Output.print('I', "Adding default repository...");
-        addRepo("XenLauncher Default Repository", "git@github.com:benjamingwynn/xenlauncher-repo.git");
+        try {
+            addRepo("XenLauncher Default Repository", "git@github.com:benjamingwynn/xenlauncher-repo.git");
+        } catch (IOException | GitAPIException ex) {
+            Logger.getLogger(RepositoryDatabase.class.getName()).log(Level.SEVERE, null, ex);
+        }
         Output.print('I', "Writing database to disk...");
         try {
             writeListToFile();
         } catch (IOException ex) {
             Output.error("Coudln't write database to disk. Maybe it's write protected? (Java IOException)", ex);
         }
+    }
+    
+    public static boolean isDatabaseCreated() {
+        return !(repository_list.isEmpty());
     }
 }

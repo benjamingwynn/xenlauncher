@@ -19,19 +19,19 @@ import java.util.logging.Logger;
 public class Output {
     public static void print(char type, String msg) {
         System.out.println("XenLauncher " + String.valueOf(meta.getVersionNumber()) + ": [" + type + "] " + msg);
-        new LauncherGUI().writeToLog(type, msg);
+        //new LauncherGUI().writeToLog(type, msg);
     }
     
     public static void error(String msg) {
         print('E', msg + " - No trace.");
         new LauncherGUI().showError(msg);
-        new LauncherGUI().writeToLog('E', msg);
+        //new LauncherGUI().writeToLog('E', msg);
     }
     
     public static void error(String msg, Exception ex) {
         print('E', msg + " - Tracing...");
         new LauncherGUI().showError(msg);
-        new LauncherGUI().writeToLog('E', msg);
+        //new LauncherGUI().writeToLog('E', msg);
         Logger.getLogger(XenLauncher.class.getName()).log(Level.SEVERE, null, ex);
     }
 }
