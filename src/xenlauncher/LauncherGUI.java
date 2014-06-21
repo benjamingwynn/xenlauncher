@@ -28,13 +28,19 @@ up to seperate the generated code from the modified code.
 package xenlauncher;
 
 import java.awt.Component;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
+import static java.lang.String.valueOf;
+import static java.lang.String.valueOf;
+import static java.lang.String.valueOf;
+import static java.lang.String.valueOf;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -49,27 +55,31 @@ public class LauncherGUI extends javax.swing.JFrame {
         rand.setText(createRandomSplash());
         newInfoText("XenLauncher Ready. Created by Benjamin Gwynn.");
         updateRepositoryInformation(repositorySelector.getSelectedItem().toString());
-        repoBranchField.setText(meta.getVersionName().toLowerCase());
+        updateLoadCounterText();
     }
     
-    final void updateRepositorySelectorList() {
+    private void updateLoadCounterText() {
+        int size = RepositoryDatabase.getListOfRepoNames().size();
+        if (size > 1) {
+            repoLoadCounterText.setText("Welcome back. " + valueOf(size) + " repos loaded.");
+        } else {
+            repoLoadCounterText.setText("Welcome back. " + valueOf(size) + " repo loaded.");
+        }
+    }
+    
+    final void addNewRepositorySelectorListComponents() {
         Output.print('I', "Updating Repository Selector list...");
         repositorySelector.addItem(RepositoryDatabase.selectRepo(RepositoryDatabase.getListOfRepoNames().size() - 1));
+        updateLoadCounterText();
         repositorySelector.revalidate();
         repositorySelector.updateUI();
     }
     
     private void updateRepositoryInformation(String repo_name) {
-        repoInformationText.setText(null);
         try {
-            List<String> line = RepositoryDatabase.getRepositoryMeta(repo_name, "repo_information");
-            for (int i = 0; i < line.size(); i++) {
-                repoInformationText.setText(repoInformationText.getText() + line.get(i) + "\n");
-            }
-        } catch (FileNotFoundException ex) {
-            Output.error("Cannot get information. Information missing. (Java FileNotFoundException)", ex);
+            repoInformation.setPage(new File(RepositoryDatabase.getRepoPath(repo_name) + "/meta/", "repo_information.htm").toURI().toURL());
         } catch (IOException ex) {
-            Output.error("Cannot get information. (Java IOException)", ex);
+            Output.error("Page not found.", ex);
         }
     }
     
@@ -163,13 +173,12 @@ public class LauncherGUI extends javax.swing.JFrame {
         jLabel4 = new javax.swing.JLabel();
         jSeparator2 = new javax.swing.JSeparator();
         closeRepoManagerButton = new javax.swing.JButton();
-        jProgressBar2 = new javax.swing.JProgressBar();
         jLabel13 = new javax.swing.JLabel();
         openAddRepoDialogButton = new javax.swing.JButton();
         repositorySelector = new javax.swing.JComboBox(RepositoryDatabase.getListOfRepoNames().toArray());
-        jScrollPane1 = new javax.swing.JScrollPane();
-        repoInformationText = new javax.swing.JTextPane();
         removeRepoButton = new javax.swing.JButton();
+        repoInformationContainer = new javax.swing.JScrollPane();
+        repoInformation = new javax.swing.JEditorPane();
         errorDialog = new javax.swing.JDialog();
         jLabel15 = new javax.swing.JLabel();
         closeErrorDialog = new javax.swing.JButton();
@@ -191,7 +200,7 @@ public class LauncherGUI extends javax.swing.JFrame {
         rand = new javax.swing.JLabel();
         ver = new javax.swing.JLabel();
         info_text = new javax.swing.JLabel();
-        jLabel2 = new javax.swing.JLabel();
+        repoLoadCounterText = new javax.swing.JLabel();
         password = new javax.swing.JPasswordField();
         settingsButton = new javax.swing.JButton();
         repoManagerButton = new javax.swing.JButton();
@@ -224,9 +233,9 @@ public class LauncherGUI extends javax.swing.JFrame {
 
         jLabel9.setText("connection, this also disables the user from downloading new");
 
-        jLabel10.setText("Minecraft versions and being able to connect to 'online mode'");
+        jLabel10.setText("Minecraft versions and being able to connect to most servers.");
 
-        jLabel11.setText("servers. Your skin may also fail to load.");
+        jLabel11.setText("Your skin may also fail to load.");
 
         jLabel12.setText("This does not affect mod downloading or repo updating.");
 
@@ -338,15 +347,15 @@ public class LauncherGUI extends javax.swing.JFrame {
             }
         });
 
-        repoInformationText.setText("Placeholder");
-        jScrollPane1.setViewportView(repoInformationText);
-
         removeRepoButton.setText("Remove this Repo");
         removeRepoButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 removeRepoButtonActionPerformed(evt);
             }
         });
+
+        repoInformation.setEditable(false);
+        repoInformationContainer.setViewportView(repoInformation);
 
         javax.swing.GroupLayout repoManagerFrameLayout = new javax.swing.GroupLayout(repoManagerFrame.getContentPane());
         repoManagerFrame.getContentPane().setLayout(repoManagerFrameLayout);
@@ -358,22 +367,20 @@ public class LauncherGUI extends javax.swing.JFrame {
                     .addComponent(jSeparator2)
                     .addGroup(repoManagerFrameLayout.createSequentialGroup()
                         .addGroup(repoManagerFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(repoInformationContainer)
                             .addGroup(repoManagerFrameLayout.createSequentialGroup()
                                 .addComponent(jLabel13)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(repositorySelector, 0, 256, Short.MAX_VALUE)
+                                .addComponent(repositorySelector, 0, 197, Short.MAX_VALUE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(removeRepoButton))
-                            .addComponent(jScrollPane1)
                             .addGroup(repoManagerFrameLayout.createSequentialGroup()
-                                .addComponent(jProgressBar2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(closeRepoManagerButton))
+                                .addComponent(jLabel4)
+                                .addGap(0, 0, Short.MAX_VALUE))
                             .addGroup(repoManagerFrameLayout.createSequentialGroup()
-                                .addGroup(repoManagerFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel4)
-                                    .addComponent(openAddRepoDialogButton, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(0, 0, Short.MAX_VALUE)))
+                                .addComponent(openAddRepoDialogButton, javax.swing.GroupLayout.PREFERRED_SIZE, 100, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(closeRepoManagerButton)))
                         .addContainerGap())))
         );
         repoManagerFrameLayout.setVerticalGroup(
@@ -389,13 +396,11 @@ public class LauncherGUI extends javax.swing.JFrame {
                     .addComponent(repositorySelector, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(removeRepoButton))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 208, Short.MAX_VALUE)
+                .addComponent(repoInformationContainer, javax.swing.GroupLayout.DEFAULT_SIZE, 240, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(openAddRepoDialogButton)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(repoManagerFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                    .addComponent(closeRepoManagerButton)
-                    .addComponent(jProgressBar2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addGroup(repoManagerFrameLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(openAddRepoDialogButton)
+                    .addComponent(closeRepoManagerButton)))
         );
 
         errorDialog.setTitle("Oops");
@@ -412,6 +417,7 @@ public class LauncherGUI extends javax.swing.JFrame {
             }
         });
 
+        errorDialogErrorText.setEditable(false);
         errorDialogErrorText.setColumns(20);
         errorDialogErrorText.setLineWrap(true);
         errorDialogErrorText.setRows(5);
@@ -445,9 +451,7 @@ public class LauncherGUI extends javax.swing.JFrame {
         );
 
         addRepoDialog.setTitle("Add Repository");
-        addRepoDialog.setMaximumSize(new java.awt.Dimension(450, 170));
         addRepoDialog.setMinimumSize(new java.awt.Dimension(450, 170));
-        addRepoDialog.setPreferredSize(new java.awt.Dimension(450, 170));
         addRepoDialog.setResizable(false);
         addRepoDialog.setType(java.awt.Window.Type.UTILITY);
 
@@ -545,7 +549,7 @@ public class LauncherGUI extends javax.swing.JFrame {
 
         info_text.setText("Loading...");
 
-        jLabel2.setText("0 Repos loaded. Everything up to date.");
+        repoLoadCounterText.setText("0 Repos loaded. Everything up to date.");
 
         password.setText("fishisabadpassword");
 
@@ -650,7 +654,7 @@ public class LauncherGUI extends javax.swing.JFrame {
                     .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                         .addComponent(info_text, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jLabel2)))
+                        .addComponent(repoLoadCounterText)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -664,7 +668,7 @@ public class LauncherGUI extends javax.swing.JFrame {
                 .addComponent(launcherTabs, javax.swing.GroupLayout.DEFAULT_SIZE, 359, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
+                    .addComponent(repoLoadCounterText)
                     .addComponent(info_text))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
@@ -744,7 +748,7 @@ public class LauncherGUI extends javax.swing.JFrame {
     private void addRepoButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addRepoButtonActionPerformed
         try {
             RepositoryDatabase.addRepo(repoNameField.getText(), repoURLField.getText());
-            updateRepositorySelectorList();
+            addNewRepositorySelectorListComponents();
         } catch (IOException ex) {
             Output.error("Cannot create the repo. Maybe you don't have permission to write here? (Java IOException)", ex);
         } catch (JGitInternalException ex) {
@@ -767,6 +771,7 @@ public class LauncherGUI extends javax.swing.JFrame {
             RepositoryDatabase.removeRepository(repositorySelector.getSelectedItem().toString());
             repositorySelector.removeItem(repositorySelector.getSelectedItem());
             repositorySelector.setSelectedIndex(0);
+            updateLoadCounterText();
         } catch (Exception ex) {
             Output.error("Coudln't remove repository. (Vague Java exception)", ex);
         }
@@ -846,7 +851,6 @@ public class LauncherGUI extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel15;
     private javax.swing.JLabel jLabel16;
     private javax.swing.JLabel jLabel17;
-    private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel5;
@@ -854,8 +858,6 @@ public class LauncherGUI extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
-    private javax.swing.JProgressBar jProgressBar2;
-    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
@@ -870,7 +872,9 @@ public class LauncherGUI extends javax.swing.JFrame {
     private javax.swing.JLabel rand;
     private javax.swing.JButton removeRepoButton;
     private javax.swing.JTextField repoBranchField;
-    private javax.swing.JTextPane repoInformationText;
+    private javax.swing.JEditorPane repoInformation;
+    private javax.swing.JScrollPane repoInformationContainer;
+    private javax.swing.JLabel repoLoadCounterText;
     private javax.swing.JButton repoManagerButton;
     private javax.swing.JFrame repoManagerFrame;
     private javax.swing.JTextField repoNameField;
